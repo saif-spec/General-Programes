@@ -1,50 +1,76 @@
+import java.util.Random;
 
 public class MiniAES{
 
     public static void main(String[] args) {
 
         
-        String PlainText = "D4DE";
-        String Key = "1234";
+        String PlainText = "3223";
+        String Key = "4335";
 
-
-
-        //Adding Round Key
-
-
-        
-        System.out.println("Text Matrix : ");
-        Matrix_2x2_Display(StringToMatrix_2x2(PlainText));
-
-
-
-        System.out.println("XORed Text : ");
-        String [][] Text_XOR = XOR( StringToMatrix_2x2(PlainText), StringToMatrix_2x2(Key));
-        Matrix_2x2_Display(Text_XOR);
-
-
-
-
-        String[][] NibbleMatrix = NibbleSub(Text_XOR);
-        System.out.println("Nibble Matrix : ");
-        Matrix_2x2_Display(NibbleMatrix);
-
-
-        
-        System.out.println("ShiftRows Matrix : ");
-        Matrix_2x2_Display( ShiftRows( NibbleMatrix ));
-
-        
-
-        System.out.println("MixColums Matrix : ");
-        Matrix_2x2_Display( MixColums(ShiftRows( NibbleMatrix )));
     
-        int temp  = 0;
-        temp = MultiplyWithModulo("1111","1111");
-        System.out.println("did we cook ?");
-   
-    }
+        System.out.println("Text  : "+PlainText);
+        System.out.println("Key  :  "+Key);
 
+        String CypherText = Mini_AES_2rounds(PlainText, Key);
+        
+        System.out.println("Encrypted Text With Mini AES 16bit : "+CypherText);
+    }
+   
+    
+    public static String Mini_AES_2rounds(String PlainText,String Key){
+
+        String res = "";
+
+
+        int Round = 0;
+        
+        String Round_Key = Key;
+
+        String[][] NibbleMatrix;
+        String[][] ShiftMatrix;
+        String[][] MixMatrix;
+        String[][] Text_XOR;
+
+        // Round 0
+        
+        Text_XOR = XOR( StringToMatrix_2x2(PlainText), StringToMatrix_2x2(Round_Key));
+        
+
+
+        // Round 1
+
+        Round++;
+        Round_Key = RoundKeyGenerator(Round, Round_Key);  // K1 (w4,..,w7)
+
+        NibbleMatrix = NibbleSub(Text_XOR);
+
+        ShiftMatrix = ShiftRows( NibbleMatrix );
+
+        MixMatrix = MixColums( ShiftMatrix );
+
+        Text_XOR = XOR(MixMatrix, StringToMatrix_2x2(Round_Key));
+
+
+        // Round 2
+
+        Round++;
+        Round_Key = RoundKeyGenerator(Round, Round_Key);  // K2 (w8,..,w12)
+        
+        
+        NibbleMatrix = NibbleSub(Text_XOR);
+        
+        ShiftMatrix = ShiftRows( NibbleMatrix );
+        
+        Text_XOR = XOR(ShiftMatrix, StringToMatrix_2x2(Round_Key));
+
+        for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++) {
+            res += Text_XOR[i][j];
+        }
+
+        return res;
+    }
 
     
     public static String[][] XOR(String[][] Matrix1,String[][] Matrix2){
@@ -70,6 +96,15 @@ public class MiniAES{
 
         return res;
     }
+
+    public static String XOR4Bits(String val1, String val2){
+
+        String res;
+
+            res = DecToHexa(HexaToDec(val1) ^ HexaToDec(val2));
+
+        return res;
+    } 
 
     public static String[][] NibbleSub(String[][] Val){
 
@@ -104,7 +139,7 @@ public class MiniAES{
     public static String[][] MixColums(String[][] M1){
 
         String [][] res = {{"",""},{"",""}};
-        String[][] M2 = {{"1","4"},{"4","1"}};
+        String[][] M2 = {{"3","2"},{"2","3"}};
         
         
         
@@ -167,49 +202,85 @@ public class MiniAES{
         return Som;
     }
  
+
+    public static String RoundKeyGenerator(int RoundN,String PrevKeyX){
+
+        String res [] = {"","","",""}; 
+        String[] RConst = {"","1","2"};
+        String [] PrevKey = { String.valueOf(PrevKeyX.charAt(0)),String.valueOf(PrevKeyX.charAt(1)),
+                              String.valueOf(PrevKeyX.charAt(2)),String.valueOf(PrevKeyX.charAt(3))};
+        
+        if(RoundN == 0){
+            return PrevKeyX;
+        }
+        else{
+
+            for(int i = 0;i<4;i++){
+                if(i == 0){
+                    String[][] tempxxx = {{PrevKey[3],"0"},{"0","0"}};
+                    String tempyyy = NibbleSub(tempxxx)[0][0];
+                    res[i] = XOR4Bits(XOR4Bits(PrevKey[0], tempyyy), RConst[RoundN]);
+                }
+                else{
+
+                    res[i] = XOR4Bits(PrevKey[i], res[i-1]);
+                }
+                 
+            }
+
+        }
+        String temp = "";
+        for (int i = 0; i < 4; i++) {
+            temp += res[i];
+        }
+        return temp;
+    }
+
+
     public static String HexaToBi(String val){
 
         switch(val) {
-            case ("0"): return ("0000");
-            case ("1"): return ("0001");
-            case ("2"): return ("0010");
-            case ("3"): return ("0011");
-            case ("4"): return ("0100");
-            case ("5"): return ("0101");
-            case ("6"): return ("0110");
-            case ("7"): return ("0111");
-            case ("8"): return ("1000");
-            case ("9"): return ("1001");
-            case ("A"): return ("1010");
-            case ("B"): return ("1011");
-            case ("C"): return ("1100");
-            case ("D"): return ("1101");
-            case ("E"): return ("1110");
-            case ("F"): return ("1111");
-            default : throw new AssertionError();
+            case ("0") -> { return ("0000");}
+            case ("1") -> { return ("0001");}
+            case ("2") -> { return ("0010");}
+            case ("3") -> { return ("0011");}
+            case ("4") -> { return ("0100");}
+            case ("5") -> { return ("0101");}
+            case ("6") -> { return ("0110");}
+            case ("7") -> { return ("0111");}
+            case ("8") -> { return ("1000");}
+            case ("9") -> { return ("1001");}
+            case ("A") -> { return ("1010");}
+            case ("B") -> { return ("1011");}
+            case ("C") -> { return ("1100");}
+            case ("D") -> { return ("1101");}
+            case ("E") -> { return ("1110");}
+            case ("F") -> { return ("1111");}
+            default -> throw new AssertionError();
         }
     }
 
     public static String BiToHexa(String val){
 
         switch(val) {
-            case ("0000"): return ("0");
-            case ("0001"): return ("1");
-            case ("0010"): return ("2");
-            case ("0011"): return ("3");
-            case ("0100"): return ("4");
-            case ("0101"): return ("5");
-            case ("0110"): return ("6");
-            case ("0111"): return ("7");
-            case ("1000"): return ("8");
-            case ("1001"): return ("9");
-            case ("1010"): return ("A");
-            case ("1011"): return ("B");
-            case ("1100"): return ("C");
-            case ("1101"): return ("D");
-            case ("1110"): return ("E");
-            case ("1111"): return ("F");
-            default : throw new AssertionError();
+            case ("0000") -> { return ("0");}
+            case ("0001") -> { return ("1");}
+            case ("0010") -> { return ("2");}
+            case ("0011") -> { return ("3");}
+            case ("0100") -> { return ("4");}
+            case ("0101") -> { return ("5");}
+            case ("0110") -> { return ("6");}
+            case ("0111") -> { return ("7");}
+            case ("1000") -> { return ("8");}
+            case ("1001") -> { return ("9");}
+            case ("1010") -> { return ("A");}
+            case ("1011") -> { return ("B");}
+            case ("1100") -> { return ("C");}
+            case ("1101") -> { return ("D");}
+            case ("1110") -> { return ("E");}
+            case ("1111") -> { return ("F");}
+            
+            default -> throw new AssertionError();
         }
     }
 
@@ -229,31 +300,18 @@ public class MiniAES{
 
         String res = "";
         
-        if(val > 0 && val < 10)
+        if(val >= 0 && val < 10)
             res = String.valueOf(val);
         else{
 
             switch (val) {
-                case 10:
-                    res += "A";
-                    break;
-                case 11:
-                    res += "B";
-                    break;
-                case 12:
-                    res += "C";
-                    break;
-                case 13:
-                    res += "D";
-                    break;
-                case 14:
-                    res += "E";
-                    break;
-                case 15:
-                    res += "F";
-                    break;
-                default:
-                    throw new AssertionError();
+                case 10 -> res += "A";
+                case 11 -> res += "B";
+                case 12 -> res += "C";
+                case 13 -> res += "D";
+                case 14 -> res += "E";
+                case 15 -> res += "F";
+                default -> throw new AssertionError();
             }
         }
 
@@ -284,6 +342,25 @@ public class MiniAES{
         //System.out.println("9 in Binary is : "+HexaToBi('9'));
         
 
+    }
+    
+    public static String RandomKey16bit(){
+
+        Random random = new Random(); 
+        
+        
+        int RN1 = random.nextInt(15) + 1;
+        int RN2 = random.nextInt(15) + 1;
+        int RN3 = random.nextInt(15) + 1;
+        int RN4 = random.nextInt(15) + 1;
+
+        String res = "";
+        res += DecToHexa(RN1);
+        res += DecToHexa(RN2);
+        res += DecToHexa(RN3);
+        res += DecToHexa(RN4);
+
+        return res;
     }
 
     
